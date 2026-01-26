@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Marca } from '../types';
 import { Plus, Edit2, Trash2, Tag } from 'lucide-react';
 import { toast } from 'sonner';
