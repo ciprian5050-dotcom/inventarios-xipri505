@@ -36,7 +36,20 @@ export function CuentadantesList({ cuentadantes, dependencias, onAdd, onEdit, on
   };
 
   // ✅ Función para obtener nombres de dependencias desde IDs
-  const getDependenciasNombres = (dependenciaIds: string[]): string => {
+  // 🔧 MIGRACIÓN: Maneja datos antiguos (dependencia: string) y nuevos (dependencias: string[])
+  const getDependenciasNombres = (cuentadante: any): string => {
+    let dependenciaIds: string[] = [];
+    
+    // Si tiene el campo nuevo (dependencias como array)
+    if (Array.isArray(cuentadante.dependencias)) {
+      dependenciaIds = cuentadante.dependencias;
+    } 
+    // Si tiene el campo antiguo (dependencia como string)
+    else if (cuentadante.dependencia) {
+      dependenciaIds = [cuentadante.dependencia];
+    }
+    
+    // Mapear IDs a nombres
     return dependenciaIds
       .map(id => dependencias.find(d => d.id === id)?.nombre)
       .filter(Boolean)
@@ -101,7 +114,7 @@ export function CuentadantesList({ cuentadantes, dependencias, onAdd, onEdit, on
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-slate-900">
-                        {getDependenciasNombres(cuentadante.dependencias)}
+                        {getDependenciasNombres(cuentadante)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
