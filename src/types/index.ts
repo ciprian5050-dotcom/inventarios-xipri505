@@ -1,89 +1,61 @@
-// Tipos compartidos de la aplicación
+// múltiples dependencias por cuentadante (1/3)
 
 export interface Activo {
   id: string;
-  qr: string;
+  codigo: string;
   nombre: string;
   marca: string;
   modelo: string;
   serie: string;
   dependencia: string;
-  cuentadante?: string;
   valor: number;
   fechaIngreso: string;
-  estado: 'Activo' | 'Inactivo' | 'En mantenimiento' | 'Dado de baja' | 'Extraviado';
+  estado: string;
   observaciones?: string;
   grupo?: string;
-}
-
-export interface Cuentadante {
-  id: string;
-  nombre: string;
-  cedula: string;
-  cargo: string;
-  dependencia: string;
-  email?: string;
-  telefono?: string;
+  cuentadante?: string;
+  placa?: string;
 }
 
 export interface Dependencia {
   id: string;
   nombre: string;
   codigo: string;
-  responsable?: string;
-  ubicacion?: string;
 }
 
-export interface Marca {
+export interface Cuentadante {
   id: string;
   nombre: string;
-  descripcion?: string;
+  cedula: string;
+  dependencias: string[]; // ✅ CAMBIO: ahora es array para múltiples dependencias
+  cargo: string;
+  telefono?: string;
+  email?: string;
 }
 
-export interface NombreActivo {
+export interface Grupo {
   id: string;
-  nombre: string;
-  descripcion?: string;
-}
-
-export interface ConfiguracionEmpresa {
-  nombreEmpresa: string;
-  nit: string;
-  direccion: string;
-  telefono: string;
-  logoUrl: string;
-}
-
-export interface Credenciales {
-  usuario: string;
-  password: string;
-}
-
-export interface Circular {
-  id: string;
-  numero: string;
-  fecha: string;
-  para: string; // Dependencia destinataria
-  asunto: string;
-  contenido: string; // Cuerpo del mensaje
-  estado: 'Pendiente' | 'Enviada' | 'Archivada';
-}
-
-export interface GrupoActivo {
-  codigo: string;
   nombre: string;
   prefijo: string;
-  vidaUtil: number; // Años de vida útil
-  tasaDepreciacion: number; // Porcentaje anual (0-100)
+  descripcion?: string;
 }
 
-export interface DepreciacionCalculada {
-  valorOriginal: number;
-  vidaUtilAnios: number;
-  tasaDepreciacion: number;
-  aniosTranscurridos: number;
-  depreciacionAnual: number;
-  depreciacionAcumulada: number;
-  valorActual: number;
-  porcentajeDepreciado: number;
+export interface MovimientoInventario {
+  id: string;
+  tipo: 'ingreso' | 'traslado' | 'baja' | 'ajuste';
+  fecha: string;
+  descripcion: string;
+  usuario: string;
+  activosAfectados: string[];
+  detalles?: any;
+}
+
+export interface Usuario {
+  id: string;
+  username: string;
+  passwordHash: string;
+  nombre: string;
+  rol: 'admin' | 'usuario';
+  activo: boolean;
+  fechaCreacion: string;
 }
