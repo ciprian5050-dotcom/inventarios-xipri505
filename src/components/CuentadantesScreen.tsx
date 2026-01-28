@@ -25,33 +25,36 @@ export function CuentadantesScreen() {
       
       console.log('🔍 Cargando cuentadantes desde Supabase...');
       
-      // Agregar timeout de 10 segundos
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: La carga tardó más de 10 segundos')), 10000)
-      );
+      // Cargar con timeout más robusto
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      const loadPromise = (async () => {
+      try {
         const loadedCuentadantes = await kvGetByPrefix('cuentadante:');
         const loadedDependencias = await kvGetByPrefix('dependencia:');
         
+        clearTimeout(timeoutId);
+        
         console.log('✅ Datos cargados:', {
-          cuentadantes: loadedCuentadantes.length,
-          dependencias: loadedDependencias.length
+          cuentadantes: loadedCuentadantes?.length || 0,
+          dependencias: loadedDependencias?.length || 0
         });
         
-        return { loadedCuentadantes, loadedDependencias };
-      })();
-      
-      const { loadedCuentadantes, loadedDependencias } = await Promise.race([
-        loadPromise,
-        timeoutPromise
-      ]) as any;
-      
-      setCuentadantes(loadedCuentadantes);
-      setDependencias(loadedDependencias);
+        setCuentadantes(Array.isArray(loadedCuentadantes) ? loadedCuentadantes : []);
+        setDependencias(Array.isArray(loadedDependencias) ? loadedDependencias : []);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Timeout: La carga tardó más de 10 segundos');
+        }
+        throw fetchError;
+      }
     } catch (err: any) {
       console.error('❌ Error cargando datos:', err);
       setError(err.message || 'Error al cargar los datos desde Supabase');
+      // En caso de error, asegurar que los arrays estén vacíos en lugar de undefined
+      setCuentadantes([]);
+      setDependencias([]);
     } finally {
       setLoading(false);
     }
