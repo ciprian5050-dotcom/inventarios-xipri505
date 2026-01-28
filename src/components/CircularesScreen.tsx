@@ -180,9 +180,12 @@ export function CircularesScreen() {
     let rightY = currentY;
     doc.text('ALMACEN', rightColumn, rightY);
     rightY += 6;
-    // Aquí va la dependencia seleccionada
-    doc.text(circular.para.toUpperCase(), rightColumn, rightY);
-    rightY += 6;
+   // Aquí va la dependencia seleccionada - con soporte para nombres largos
+    const paraText = circular.para.toUpperCase();
+    const maxWidth = 80; // Ancho máximo permitido
+    const paraLines = doc.splitTextToSize(paraText, maxWidth);
+    doc.text(paraLines, rightColumn, rightY);
+    rightY += (paraLines.length * 6); // Incrementar según número de líneas
     doc.text('INVENTARIO ACTIVOS', rightColumn, rightY);
     rightY += 6;
     // Formato de fecha sin conversión de zona horaria
