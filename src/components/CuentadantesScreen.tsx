@@ -25,19 +25,33 @@ export function CuentadantesScreen() {
       
       console.log('🔍 Cargando cuentadantes desde Supabase...');
       
-      const loadedCuentadantes = await kvGetByPrefix('cuentadante:');
-      const loadedDependencias = await kvGetByPrefix('dependencia:');
+      // Agregar timeout de 10 segundos
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: La carga tardó más de 10 segundos')), 10000)
+      );
       
-      console.log('✅ Datos cargados:', {
-        cuentadantes: loadedCuentadantes.length,
-        dependencias: loadedDependencias.length
-      });
+      const loadPromise = (async () => {
+        const loadedCuentadantes = await kvGetByPrefix('cuentadante:');
+        const loadedDependencias = await kvGetByPrefix('dependencia:');
+        
+        console.log('✅ Datos cargados:', {
+          cuentadantes: loadedCuentadantes.length,
+          dependencias: loadedDependencias.length
+        });
+        
+        return { loadedCuentadantes, loadedDependencias };
+      })();
+      
+      const { loadedCuentadantes, loadedDependencias } = await Promise.race([
+        loadPromise,
+        timeoutPromise
+      ]) as any;
       
       setCuentadantes(loadedCuentadantes);
       setDependencias(loadedDependencias);
     } catch (err: any) {
       console.error('❌ Error cargando datos:', err);
-      setError('Error al cargar los datos desde Supabase');
+      setError(err.message || 'Error al cargar los datos desde Supabase');
     } finally {
       setLoading(false);
     }
