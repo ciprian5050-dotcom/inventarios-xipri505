@@ -56,6 +56,20 @@ export function CuentadantesScreen() {
       setLoading(false);
     }
   };
+      const { loadedCuentadantes, loadedDependencias } = await Promise.race([
+        loadPromise,
+        timeoutPromise
+      ]) as any;
+      
+      setCuentadantes(loadedCuentadantes);
+      setDependencias(loadedDependencias);
+    } catch (err: any) {
+      console.error('❌ Error cargando datos:', err);
+      setError(err.message || 'Error al cargar los datos desde Supabase');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddCuentadante = async (cuentadante: Omit<Cuentadante, 'id'>) => {
     const newCuentadante: Cuentadante = {
