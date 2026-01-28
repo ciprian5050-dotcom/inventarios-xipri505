@@ -106,7 +106,8 @@ export function ReportesScreen() {
       return;
     }
 
-    const doc = new jsPDF();
+    // Cambiar a tamaño CARTA (Letter: 8.5" x 11")
+const doc = new jsPDF('p', 'mm', 'letter');
     
     let currentY = 10;
 
@@ -241,35 +242,49 @@ export function ReportesScreen() {
     
     doc.setFont('helvetica', 'normal');
 
-    // Firmas al final
-    const firmasY = currentY + 25;
-    const pageWidth = doc.internal.pageSize.width;
-    const firmaWidth = 60;
-    const espacioEntre = (pageWidth - (firmaWidth * 2)) / 3;
+   // ===== FIRMAS AL FINAL =====
+// Verificar si hay espacio suficiente para las firmas (necesitamos ~40mm)
+const pageHeight = doc.internal.pageSize.height;
+const espacioNecesario = 40;
 
-    doc.setFontSize(9);
-    
-    // Primera fila: Almacenista General y Cuentadante
-    // Almacenista General
-    let firmaX = espacioEntre;
-    doc.line(firmaX, firmasY, firmaX + firmaWidth, firmasY);
-    const almacenistaText = 'Almacenista General';
-    const almacenistaWidth = doc.getTextWidth(almacenistaText);
-    doc.text(almacenistaText, firmaX + (firmaWidth - almacenistaWidth) / 2, firmasY + 5);
-    
-    // Cuentadante
-    firmaX = espacioEntre + firmaWidth + espacioEntre;
-    doc.line(firmaX, firmasY, firmaX + firmaWidth, firmasY);
-    const cuentadanteText = 'Cuentadante';
-    const cuentadanteWidth = doc.getTextWidth(cuentadanteText);
-    doc.text(cuentadanteText, firmaX + (firmaWidth - cuentadanteWidth) / 2, firmasY + 5);
+if (currentY + espacioNecesario > pageHeight - 20) {
+  // No hay espacio, agregar nueva página
+  doc.addPage();
+  currentY = 20;
+} else {
+  // Hay espacio, agregar separación
+  currentY += 25;
+}
 
-    // Elaborado por (a la izquierda, sin línea)
-    const elaboradoY = firmasY + 15;
-    const elaboradoX = 15; // Alineado a la izquierda
-    doc.text('Elaborado por', elaboradoX, elaboradoY);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Ciprian Aragon', elaboradoX, elaboradoY + 5);
+const firmasY = currentY;
+const pageWidth = doc.internal.pageSize.width;
+const firmaWidth = 60;
+const espacioEntre = (pageWidth - (firmaWidth * 2)) / 3;
+
+doc.setFontSize(9);
+
+// Primera fila: Almacenista General y Cuentadante
+// Almacenista General
+let firmaX = espacioEntre;
+doc.line(firmaX, firmasY, firmaX + firmaWidth, firmasY);
+const almacenistaText = 'Almacenista General';
+const almacenistaWidth = doc.getTextWidth(almacenistaText);
+doc.text(almacenistaText, firmaX + (firmaWidth - almacenistaWidth) / 2, firmasY + 5);
+
+// Cuentadante
+firmaX = espacioEntre + firmaWidth + espacioEntre;
+doc.line(firmaX, firmasY, firmaX + firmaWidth, firmasY);
+const cuentadanteText = 'Cuentadante';
+const cuentadanteWidth = doc.getTextWidth(cuentadanteText);
+doc.text(cuentadanteText, firmaX + (firmaWidth - cuentadanteWidth) / 2, firmasY + 5);
+
+// Elaborado por (a la izquierda, sin línea)
+const elaboradoY = firmasY + 15;
+const elaboradoX = 15; // Alineado a la izquierda
+doc.text('Elaborado por', elaboradoX, elaboradoY);
+doc.setFont('helvetica', 'bold');
+doc.text('Ciprian Aragon', elaboradoX, elaboradoY + 5);
+doc.setFont('helvetica', 'normal');
     doc.setFont('helvetica', 'normal');
 
     doc.save(`reporte-activos-${selectedDependencia || 'todos'}-${Date.now()}.pdf`);
