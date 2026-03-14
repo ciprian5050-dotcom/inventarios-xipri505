@@ -148,26 +148,51 @@ export async function kvGetByPrefix(prefix: string): Promise<any[]> {
   const supabase = createClient();
   
   try {
-    console.log(`🔍 kvGetByPrefix(${prefix}) - Iniciando consulta...`);
+    console.log(`🔍 kvGetByPrefix(${prefix}) - Iniciando consulta SIN LÍMITE...`);
     
-    const { data, error } = await supabase
-      .from('kv_store_b351c7a3')
-      .select('value')
-      .like('key', `${prefix}%`);
+    // Supabase tiene un límite por defecto de 1000 registros
+    // Necesitamos usar paginación para obtener todos los registros
+    let allData: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    let hasMore = true;
     
-    if (error) {
-      console.error(`❌ Error en la consulta de ${prefix}:`, {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-      throw error;
+    while (hasMore) {
+      const { data, error, count } = await supabase
+        .from('kv_store_b351c7a3')
+        .select('value', { count: 'exact' })
+        .like('key', `${prefix}%`)
+        .range(from, from + pageSize - 1);
+      
+      if (error) {
+        console.error(`❌ Error en la consulta de ${prefix}:`, {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        throw error;
+      }
+      
+      if (data && data.length > 0) {
+        allData = allData.concat(data);
+        console.log(`📦 Página cargada: ${data.length} registros (total acumulado: ${allData.length})`);
+      }
+      
+      // Verificar si hay más datos
+      hasMore = data && data.length === pageSize;
+      from += pageSize;
+      
+      // Protección contra bucles infinitos
+      if (from > 100000) {
+        console.warn(`⚠️ Se alcanzó el límite de seguridad (100,000 registros). Deteniendo carga.`);
+        break;
+      }
     }
     
-    console.log(`✅ kvGetByPrefix(${prefix}) - Datos recibidos:`, data?.length || 0, 'registros');
+    console.log(`✅ kvGetByPrefix(${prefix}) - COMPLETADO: ${allData.length} registros totales`);
     
-    return (data || []).map(row => row.value);
+    return allData.map(row => row.value);
   } catch (error: any) {
     console.error(`❌ Error en kvGetByPrefix(${prefix}):`, {
       message: error.message,
@@ -201,3 +226,167 @@ export async function kvDel(key: string): Promise<void> {
     throw error;
   }
 }
+e. En la parte inferior, en "Commit message" escribe:
+
+Fix: Paginación para más de 1000 activos (frontend)
+f. Haz clic en "Commit changes" (botón verde)
+
+3. Editar el segundo archivo:
+a. Navega a: supabase/functions/server/index.tsx
+
+b. Haz clic en el ícono del lápiz (✏️) para editar
+
+c. Busca la línea 4 que dice:
+
+import * as kv from './kv_store.tsx';
+d. REEMPLAZA las líneas 1-6 con esto:
+
+import { Hono } from 'npm:hono@4';
+import { cors } from 'npm:hono/cors';
+import { logger } from 'npm:hono/logger';
+import * as kv from './kv_store.tsx';
+import { initBucket, uploadPhoto, deletePhoto } from './storage.tsx';
+import { createClient } from "jsr:@supabase/supabase-js@2.49.8";
+e. Busca (alrededor de la línea 23) donde dice:
+
+// Wrapper para usar kv_store con fallback a memoria
+const storage = {
+f. REEMPLAZA desde ahí hasta el final del objeto storage (hasta el }; alrededor de la línea 115) con este código:
+
+// Helper para crear cliente de Supabase
+const getSupabaseClient = () => createClient(
+  Deno.env.get("SUPABASE_URL"),
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+);
+
+// Wrapper para usar kv_store con fallback a memoria
+const storage = {
+  mode: 'unknown' as 'memory' | 'database' | 'unknown',
+  
+  async get(key: string): Promise<any> {
+    if (usingMemoryFallback) {
+      return memoryStore.get(key);
+    }
+    try {
+      const result = await kv.get(key);
+      this.mode = 'database';
+      return result;
+    } catch (error: any) {
+      if (error.message?.includes('kv_store') || error.message?.includes('table')) {
+        console.log('⚠️ Tabla no disponible, usando almacenamiento en memoria (temporal)');
+        usingMemoryFallback = true;
+        this.mode = 'memory';
+        return memoryStore.get(key);
+      }
+      throw error;
+    }
+  },
+  
+  async set(key: string, value: any): Promise<void> {
+    if (usingMemoryFallback) {
+      memoryStore.set(key, value);
+      this.mode = 'memory';
+      return;
+    }
+    try {
+      await kv.set(key, value);
+      this.mode = 'database';
+    } catch (error: any) {
+      if (error.message?.includes('kv_store') || error.message?.includes('table')) {
+        console.log('⚠️ Tabla no disponible, usando almacenamiento en memoria (temporal)');
+        usingMemoryFallback = true;
+        this.mode = 'memory';
+        memoryStore.set(key, value);
+      } else {
+        throw error;
+      }
+    }
+  },
+  
+  async del(key: string): Promise<void> {
+    if (usingMemoryFallback) {
+      memoryStore.delete(key);
+      return;
+    }
+    try {
+      await kv.del(key);
+      this.mode = 'database';
+    } catch (error: any) {
+      if (error.message?.includes('kv_store') || error.message?.includes('table')) {
+        usingMemoryFallback = true;
+        this.mode = 'memory';
+        memoryStore.delete(key);
+      } else {
+        throw error;
+      }
+    }
+  },
+  
+  async getByPrefix(prefix: string): Promise<any[]> {
+    if (usingMemoryFallback) {
+      const results: any[] = [];
+      for (const [key, value] of memoryStore.entries()) {
+        if (key.startsWith(prefix)) {
+          results.push(value);
+        }
+      }
+      this.mode = 'memory';
+      return results;
+    }
+    try {
+      console.log(`🔍 [SERVER] getByPrefix(${prefix}) - Iniciando consulta CON PAGINACIÓN...`);
+      
+      // Usar paginación para obtener todos los registros (sin límite de 1000)
+      const supabase = getSupabaseClient();
+      let allData: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("kv_store_c94f8b91")
+          .select("value")
+          .like("key", `${prefix}%`)
+          .range(from, from + pageSize - 1);
+        
+        if (error) {
+          throw new Error(error.message);
+        }
+        
+        if (data && data.length > 0) {
+          allData = allData.concat(data);
+          console.log(`📦 [SERVER] Página cargada: ${data.length} registros (total acumulado: ${allData.length})`);
+        }
+        
+        // Verificar si hay más datos
+        hasMore = data && data.length === pageSize;
+        from += pageSize;
+        
+        // Protección contra bucles infinitos
+        if (from > 100000) {
+          console.warn(`⚠️ [SERVER] Límite de seguridad alcanzado (100,000 registros)`);
+          break;
+        }
+      }
+      
+      console.log(`✅ [SERVER] getByPrefix(${prefix}) - COMPLETADO: ${allData.length} registros totales`);
+      
+      this.mode = 'database';
+      return allData.map((d) => d.value);
+    } catch (error: any) {
+      if (error.message?.includes('kv_store') || error.message?.includes('table')) {
+        usingMemoryFallback = true;
+        this.mode = 'memory';
+        const results: any[] = [];
+        for (const [key, value] of memoryStore.entries()) {
+          if (key.startsWith(prefix)) {
+            results.push(value);
+          }
+        }
+        return results;
+      }
+      throw error;
+    }
+  }
+};
