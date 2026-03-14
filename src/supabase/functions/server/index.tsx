@@ -3,7 +3,7 @@ import { cors } from 'npm:hono/cors';
 import { logger } from 'npm:hono/logger';
 import * as kv from './kv_store.tsx';
 import { initBucket, uploadPhoto, deletePhoto } from './storage.tsx';
-
+import { createClient } from "@supabase/supabase-js";
 const app = new Hono();
 
 // CORS configuration
