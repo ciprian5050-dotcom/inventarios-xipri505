@@ -4,6 +4,7 @@ import { logger } from 'npm:hono/logger';
 import * as kv from './kv_store.tsx';
 import { initBucket, uploadPhoto, deletePhoto } from './storage.tsx';
 import { createClient } from "@supabase/supabase-js";
+
 const app = new Hono();
 
 // CORS configuration
@@ -19,6 +20,12 @@ app.use('*', logger(console.log));
 // Usado cuando la tabla de Supabase no está disponible
 const memoryStore = new Map<string, any>();
 let usingMemoryFallback = false;
+
+// Helper para crear cliente de Supabase
+const getSupabaseClient = () => createClient(
+  Deno.env.get("SUPABASE_URL"),
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+);
 
 // Wrapper para usar kv_store con fallback a memoria
 const storage = {
@@ -95,9 +102,46 @@ const storage = {
       return results;
     }
     try {
-      const result = await kv.getByPrefix(prefix);
+      console.log(`🔍 [SERVER] getByPrefix(${prefix}) - Iniciando consulta CON PAGINACIÓN...`);
+      
+      // Usar paginación para obtener todos los registros (sin límite de 1000)
+      const supabase = getSupabaseClient();
+      let allData: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from("kv_store_c94f8b91")
+          .select("value")
+          .like("key", `${prefix}%`)
+          .range(from, from + pageSize - 1);
+        
+        if (error) {
+          throw new Error(error.message);
+        }
+        
+        if (data && data.length > 0) {
+          allData = allData.concat(data);
+          console.log(`📦 [SERVER] Página cargada: ${data.length} registros (total acumulado: ${allData.length})`);
+        }
+        
+        // Verificar si hay más datos
+        hasMore = data && data.length === pageSize;
+        from += pageSize;
+        
+        // Protección contra bucles infinitos
+        if (from > 100000) {
+          console.warn(`⚠️ [SERVER] Límite de seguridad alcanzado (100,000 registros)`);
+          break;
+        }
+      }
+      
+      console.log(`✅ [SERVER] getByPrefix(${prefix}) - COMPLETADO: ${allData.length} registros totales`);
+      
       this.mode = 'database';
-      return result;
+      return allData.map((d) => d.value);
     } catch (error: any) {
       if (error.message?.includes('kv_store') || error.message?.includes('table')) {
         usingMemoryFallback = true;
@@ -172,7 +216,7 @@ app.post('/make-server-b351c7a3/auth/signup', async (c) => {
   console.log('');
   console.log('═══════════════════════════════════════════════════════');
   console.log('📝 [SIGNUP] Recibida petición de registro');
-  console.log('═══════════════════════════════════════════════════════');
+  console.log('══════════════════════════════════════════════════════');
   
   try {
     const body = await c.req.json();
@@ -843,7 +887,7 @@ app.get('/make-server-b351c7a3/backend-stats', async (c) => {
       cuentadantes = await storage.getByPrefix('cuentadante:') || [];
       console.log(`📊 [STATS] Cuentadantes encontrados: ${cuentadantes.length}`);
     } catch (e: any) {
-      console.error(`❌ [STATS] Error obteniendo cuentadantes:`, e.message);
+      console.error(` [STATS] Error obteniendo cuentadantes:`, e.message);
       cuentadantes = [];
     }
     
