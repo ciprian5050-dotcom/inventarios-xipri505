@@ -1,0 +1,6 @@
+{
+  "name": "supabase-edge-functions",
+  "version": "1.0.0",
+  "description": "Deno Edge Functions - No usar npm",
+  "private": true
+}
