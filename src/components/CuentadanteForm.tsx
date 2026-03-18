@@ -1,186 +1,256 @@
-import React, { useState, useEffect } from 'react';
+import { useState, FormEvent } from 'react';
+import { Cuentadante, Dependencia } from '../types';
 import { X } from 'lucide-react';
-import type { Cuentadante, Dependencia } from '../types';
 
 interface CuentadanteFormProps {
-  cuentadante?: Cuentadante;
+  cuentadante: Cuentadante | null;
   dependencias: Dependencia[];
-  onSubmit: (cuentadante: Omit<Cuentadante, 'id'>) => void;
-  onClose: () => void;
+  onSave?: (cuentadante: Cuentadante | Omit<Cuentadante, 'id'>) => void;
+  onSubmit?: (cuentadante: Cuentadante | Omit<Cuentadante, 'id'>) => void;
+  onCancel: () => void;
 }
 
-export function CuentadanteForm({ cuentadante, dependencias, onSubmit, onClose }: CuentadanteFormProps) {
-  // 🔧 MIGRACIÓN: Convertir dependencia antigua (string) a dependencias nuevas (array)
-  const getDependenciasArray = (): string[] => {
-    if (!cuentadante) return [];
-    
-    // Si tiene el campo nuevo (dependencias como array)
-    if (Array.isArray((cuentadante as any).dependencias)) {
-      return (cuentadante as any).dependencias;
-    }
-    
-    // Si tiene el campo antiguo (dependencia como string)
-    if ((cuentadante as any).dependencia) {
-      return [(cuentadante as any).dependencia];
-    }
-    
-    return [];
-  };
-
+export function CuentadanteForm({ cuentadante, dependencias, onSave, onSubmit, onCancel }: CuentadanteFormProps) {
   const [formData, setFormData] = useState({
     nombre: cuentadante?.nombre || '',
     cedula: cuentadante?.cedula || '',
-    dependencias: getDependenciasArray(),
     cargo: cuentadante?.cargo || '',
-    telefono: cuentadante?.telefono || '',
+    dependencia: cuentadante?.dependencia || '',
+    dependencias: cuentadante?.dependencias || [cuentadante?.dependencia].filter(Boolean) || [],
     email: cuentadante?.email || '',
+    telefono: cuentadante?.telefono || ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData.dependencias.length === 0) {
-      alert('Debes seleccionar al menos una dependencia');
-      return;
-    }
-    onSubmit(formData);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedDeps, setSelectedDeps] = useState<string[]>(
+    cuentadante?.dependencias || [cuentadante?.dependencia].filter(Boolean) || []
+  );
+
+  const handleDependenciaToggle = (depNombre: string) => {
+    setSelectedDeps(prev => {
+      if (prev.includes(depNombre)) {
+        return prev.filter(d => d !== depNombre);
+      } else {
+        return [...prev, depNombre];
+      }
+    });
   };
 
-  // ✅ Toggle de dependencias (seleccionar/deseleccionar)
-  const toggleDependencia = (dependenciaId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      dependencias: prev.dependencias.includes(dependenciaId)
-        ? prev.dependencias.filter(id => id !== dependenciaId)
-        : [...prev.dependencias, dependenciaId]
-    }));
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    // Validar cédula (solo números, entre 7 y 10 dígitos)
+    if (!/^\d{7,10}$/.test(formData.cedula)) {
+      newErrors.cedula = 'La cédula debe tener entre 7 y 10 números';
+    }
+
+    // Validar correo
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Ingrese un correo electrónico válido';
+    }
+
+    // Validar teléfono (formato colombiano: 10 dígitos empezando con 3) - opcional
+    if (formData.telefono && !/^3\d{9}$/.test(formData.telefono)) {
+      newErrors.telefono = 'El teléfono debe ser un número colombiano válido (10 dígitos, inicia con 3)';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    if (selectedDeps.length === 0) {
+      alert('Por favor seleccione al menos una dependencia');
+      return;
+    }
+    
+    // Usar el callback apropiado
+    const callback = onSave || onSubmit;
+    
+    if (!callback) {
+      console.error('No se proporcionó callback onSave u onSubmit');
+      return;
+    }
+    
+    if (cuentadante) {
+      callback({ ...cuentadante, ...formData, dependencias: selectedDeps, dependencia: selectedDeps[0] });
+    } else {
+      callback({ ...formData, dependencias: selectedDeps, dependencia: selectedDeps[0] });
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-200">
-          <h2 className="text-xl font-semibold text-slate-900">
+          <h2 className="text-slate-900">
             {cuentadante ? 'Editar Cuentadante' : 'Nuevo Cuentadante'}
           </h2>
           <button
-            type="button"
-            onClick={onClose}
+            onClick={onCancel}
             className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-slate-500" />
+            <X className="w-5 h-5 text-slate-600" />
           </button>
         </div>
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            {/* Nombre Completo */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Nombre Completo *
+              <label className="block text-slate-700 mb-2">
+                Nombre Completo <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.nombre}
                 onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                placeholder="Ej: Carlos Andrés Rodríguez"
               />
             </div>
 
+            {/* Cédula */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Cédula *
+              <label className="block text-slate-700 mb-2">
+                Cédula <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.cedula}
-                onChange={(e) => setFormData({ ...formData, cedula: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  setFormData({ ...formData, cedula: value });
+                  if (errors.cedula) setErrors({ ...errors, cedula: '' });
+                }}
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent ${
+                  errors.cedula ? 'border-red-500' : 'border-slate-300'
+                }`}
+                placeholder="Ej: 1234567890"
+                maxLength={10}
               />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-3">
-                Dependencias * (Selecciona una o más)
-              </label>
-              <div className="space-y-2 border border-slate-200 rounded-lg p-4 bg-slate-50">
-                {dependencias.map((dep) => (
-                  <label
-                    key={dep.id}
-                    className="flex items-center gap-3 p-2 hover:bg-white rounded cursor-pointer transition-colors"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.dependencias.includes(dep.id)}
-                      onChange={() => toggleDependencia(dep.id)}
-                      className="w-4 h-4 text-blue-500 border-slate-300 rounded focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-slate-700">{dep.nombre}</span>
-                  </label>
-                ))}
-              </div>
-              {formData.dependencias.length === 0 && (
-                <p className="text-sm text-red-500 mt-2">⚠️ Selecciona al menos una dependencia</p>
-              )}
-              {formData.dependencias.length > 0 && (
-                <p className="text-sm text-green-600 mt-2">
-                  ✅ {formData.dependencias.length} dependencia{formData.dependencias.length > 1 ? 's' : ''} seleccionada{formData.dependencias.length > 1 ? 's' : ''}
-                </p>
+              {errors.cedula && (
+                <p className="text-red-500 text-sm mt-1">{errors.cedula}</p>
               )}
             </div>
 
+            {/* Cargo */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Cargo *
+              <label className="block text-slate-700 mb-2">
+                Cargo <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.cargo}
                 onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
+                placeholder="Ej: Jefe de Sistemas"
               />
             </div>
 
+            {/* Correo */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Teléfono
-              </label>
-              <input
-                type="tel"
-                value={formData.telefono}
-                onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Email
+              <label className="block text-slate-700 mb-2">
+                Correo Electrónico <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
+                required
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value });
+                  if (errors.email) setErrors({ ...errors, email: '' });
+                }}
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent ${
+                  errors.email ? 'border-red-500' : 'border-slate-300'
+                }`}
+                placeholder="Ej: carlos.rodriguez@empresa.com"
               />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Celular */}
+            <div>
+              <label className="block text-slate-700 mb-2">
+                Número de Celular <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                required
+                value={formData.telefono}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  setFormData({ ...formData, telefono: value });
+                  if (errors.telefono) setErrors({ ...errors, telefono: '' });
+                }}
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent ${
+                  errors.telefono ? 'border-red-500' : 'border-slate-300'
+                }`}
+                placeholder="Ej: 3001234567"
+                maxLength={10}
+              />
+              {errors.telefono && (
+                <p className="text-red-500 text-sm mt-1">{errors.telefono}</p>
+              )}
+            </div>
+
+            {/* Dependencias */}
+            <div>
+              <label className="block text-slate-700 mb-2">
+                Dependencias <span className="text-red-500">*</span>
+              </label>
+              <div className="flex flex-wrap gap-2 p-3 border border-slate-300 rounded-lg min-h-[60px]">
+                {Array.isArray(dependencias) && dependencias.map(dep => (
+                  <button
+                    key={dep.id}
+                    type="button"
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      selectedDeps.includes(dep.nombre) 
+                        ? 'bg-slate-900 text-white' 
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                    onClick={() => handleDependenciaToggle(dep.nombre)}
+                  >
+                    {dep.nombre} ({dep.codigo})
+                  </button>
+                ))}
+              </div>
+              {selectedDeps.length === 0 && (
+                <p className="text-red-500 text-sm mt-1">Seleccione al menos una dependencia</p>
+              )}
+              <p className="text-slate-500 text-sm mt-1">
+                ✅ Un cuentadante puede estar asignado a múltiples dependencias. Click para seleccionar/deseleccionar.
+              </p>
             </div>
           </div>
 
-          <div className="flex gap-3 justify-end mt-6 pt-6 border-t border-slate-200">
+          {/* Actions */}
+          <div className="flex gap-3 mt-6 pt-6 border-t border-slate-200">
             <button
               type="button"
-              onClick={onClose}
-              className="px-6 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
+              onClick={onCancel}
+              className="flex-1 px-6 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={formData.dependencias.length === 0}
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
             >
-              {cuentadante ? 'Actualizar' : 'Crear'} Cuentadante
+              {cuentadante ? 'Guardar Cambios' : 'Crear Cuentadante'}
             </button>
           </div>
         </form>
