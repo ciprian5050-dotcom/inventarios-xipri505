@@ -1,204 +1,272 @@
-import { Activo, Cuentadante } from '../types';
-import { Pencil, Trash2, Hash, Search, Image as ImageIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { Search, Filter, Edit2, Trash2, Package, AlertCircle } from 'lucide-react';
+import type { Activo } from '../types';
 
 interface ActivosListProps {
   activos: Activo[];
-  cuentadantes: Cuentadante[];
   onEdit: (activo: Activo) => void;
   onDelete: (id: string) => void;
+  dependencias: string[];
 }
 
-export function ActivosList({ activos, cuentadantes, onEdit, onDelete }: ActivosListProps) {
+export function ActivosList({ activos, onEdit, onDelete, dependencias }: ActivosListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterEstado, setFilterEstado] = useState<string>('Todos');
-  const [filterDependencia, setFilterDependencia] = useState<string>('Todas');
-  const [selectedFoto, setSelectedFoto] = useState<string | null>(null);
-
-  const dependencias = Array.from(new Set(activos.map(a => a.dependencia)));
-  const estados = ['Todos', 'Activo', 'Inactivo', 'En mantenimiento', 'Dado de baja', 'Extraviado'];
-
-  const filteredActivos = activos.filter(activo => {
-    const matchesSearch = 
-      activo.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activo.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activo.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activo.qr.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      activo.serie.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesEstado = filterEstado === 'Todos' || activo.estado === filterEstado;
-    const matchesDependencia = filterDependencia === 'Todas' || activo.dependencia === filterDependencia;
-
-    return matchesSearch && matchesEstado && matchesDependencia;
-  });
+  const [filterDependencia, setFilterDependencia] = useState('');
+  const [filterEstado, setFilterEstado] = useState('');
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(value);
   };
 
-  const getEstadoColor = (estado: string) => {
+  const getEstadoBadgeClass = (estado: string) => {
     switch (estado) {
       case 'Activo':
         return 'bg-green-100 text-green-800';
       case 'Inactivo':
-        return 'bg-slate-100 text-slate-800';
-      case 'En mantenimiento':
+        return 'bg-gray-100 text-gray-800';
+      case 'En Mantenimiento':
         return 'bg-yellow-100 text-yellow-800';
-      case 'Dado de baja':
+      case 'Dado de Baja':
         return 'bg-red-100 text-red-800';
-      case 'Extraviado':
-        return 'bg-orange-100 text-orange-800';
       default:
         return 'bg-slate-100 text-slate-800';
     }
   };
 
+  // Filtrar y buscar activos con validación Array.isArray()
+  const activosFiltrados = useMemo(() => {
+    return Array.isArray(activos) ? activos.filter(activo => {
+      const matchesSearch = 
+        activo.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        activo.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (activo.marca && activo.marca.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (activo.modelo && activo.modelo.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (activo.serie && activo.serie.toLowerCase().includes(searchTerm.toLowerCase()));
+
+      const matchesDependencia = !filterDependencia || activo.dependencia === filterDependencia;
+      const matchesEstado = !filterEstado || activo.estado === filterEstado;
+
+      return matchesSearch && matchesDependencia && matchesEstado;
+    }) : [];
+  }, [activos, searchTerm, filterDependencia, filterEstado]);
+
+  const handleDelete = (id: string) => {
+    const activo = Array.isArray(activos) ? activos.find(a => a.id === id) : null;
+    if (!activo) return;
+
+    if (window.confirm(`¿Estás seguro de eliminar el activo "${activo.nombre}" (${activo.codigo})?`)) {
+      onDelete(id);
+    }
+  };
+
   return (
-    <div>
-      {/* Filters */}
-      <div className="p-6 border-b border-slate-200">
-        <div className="flex gap-4 items-center">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre, marca, modelo, código o serie..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-            />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Lista de Activos</h1>
+          <p className="text-slate-600 mt-1">
+            {activosFiltrados.length} activos encontrados
+          </p>
+        </div>
+      </div>
+
+      {/* Filtros y Búsqueda */}
+      <div className="bg-white p-4 rounded-lg border border-slate-200">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Búsqueda */}
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Buscar
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por código, nombre, marca, modelo o serie..."
+                className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+              />
+            </div>
           </div>
-          <select
-            value={filterDependencia}
-            onChange={(e) => setFilterDependencia(e.target.value)}
-            className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-          >
-            <option value="Todas">Todas las dependencias</option>
-            {dependencias.map(dep => (
-              <option key={dep} value={dep}>{dep}</option>
-            ))}
-          </select>
-          <select
-            value={filterEstado}
-            onChange={(e) => setFilterEstado(e.target.value)}
-            className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent"
-          >
-            {estados.map(estado => (
-              <option key={estado} value={estado}>{estado}</option>
-            ))}
-          </select>
-        </div>
-      </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th className="px-6 py-3 text-left text-slate-700">Código</th>
-              <th className="px-6 py-3 text-left text-slate-700">Nombre del Activo</th>
-              <th className="px-6 py-3 text-left text-slate-700">Marca</th>
-              <th className="px-6 py-3 text-left text-slate-700">Modelo</th>
-              <th className="px-6 py-3 text-left text-slate-700">Serie</th>
-              <th className="px-6 py-3 text-left text-slate-700">Dependencia</th>
-              <th className="px-6 py-3 text-left text-slate-700">Valor</th>
-              <th className="px-6 py-3 text-left text-slate-700">Fecha Ingreso</th>
-              <th className="px-6 py-3 text-left text-slate-700">Estado</th>
-              <th className="px-6 py-3 text-left text-slate-700">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredActivos.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="px-6 py-12 text-center text-slate-500">
-                  No se encontraron activos
-                </td>
-              </tr>
-            ) : (
-              filteredActivos.map((activo) => (
-                <tr key={activo.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <Hash className="w-4 h-4 text-slate-400" />
-                      <span className="text-slate-900 font-medium">{activo.qr}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-slate-900">{activo.nombre}</td>
-                  <td className="px-6 py-4 text-slate-600">{activo.marca}</td>
-                  <td className="px-6 py-4 text-slate-600">{activo.modelo}</td>
-                  <td className="px-6 py-4 text-slate-600">{activo.serie}</td>
-                  <td className="px-6 py-4 text-slate-600">{activo.dependencia}</td>
-                  <td className="px-6 py-4 text-slate-900">{formatCurrency(activo.valor)}</td>
-                  <td className="px-6 py-4 text-slate-600">
-                    {new Date(activo.fechaIngreso).toLocaleDateString('es-CO')}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-sm ${getEstadoColor(activo.estado)}`}>
-                      {activo.estado}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => onEdit(activo)}
-                        className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
-                        title="Editar"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => onDelete(activo.id)}
-                        className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+          {/* Filtro por Dependencia */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Dependencia
+            </label>
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <select
+                value={filterDependencia}
+                onChange={(e) => setFilterDependencia(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 appearance-none bg-white"
+              >
+                <option value="">Todas</option>
+                {dependencias.map(dep => (
+                  <option key={dep} value={dep}>{dep}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-      {/* Summary */}
-      <div className="px-6 py-4 bg-slate-50 border-t border-slate-200">
-        <div className="flex justify-between items-center">
-          <p className="text-slate-600">
-            Mostrando {filteredActivos.length} de {activos.length} activos
-          </p>
-          <p className="text-slate-900">
-            Valor total: {formatCurrency(filteredActivos.reduce((sum, a) => sum + a.valor, 0))}
-          </p>
-        </div>
-      </div>
-
-      {/* Modal de Foto */}
-      {selectedFoto && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedFoto(null)}
-        >
-          <div className="relative max-w-4xl max-h-[90vh]">
-            <img
-              src={selectedFoto}
-              alt="Vista ampliada"
-              className="max-w-full max-h-[90vh] rounded-lg"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <button
-              onClick={() => setSelectedFoto(null)}
-              className="absolute top-4 right-4 p-2 bg-white rounded-full hover:bg-slate-100 transition-colors"
+          {/* Filtro por Estado */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Estado
+            </label>
+            <select
+              value={filterEstado}
+              onChange={(e) => setFilterEstado(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500 appearance-none bg-white"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <option value="">Todos</option>
+              <option value="Activo">Activo</option>
+              <option value="Inactivo">Inactivo</option>
+              <option value="En Mantenimiento">En Mantenimiento</option>
+              <option value="Dado de Baja">Dado de Baja</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Botón limpiar filtros */}
+        {(searchTerm || filterDependencia || filterEstado) && (
+          <div className="mt-4">
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setFilterDependencia('');
+                setFilterEstado('');
+              }}
+              className="text-sm text-slate-600 hover:text-slate-900 underline"
+            >
+              Limpiar filtros
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Lista de Activos */}
+      {activosFiltrados.length === 0 ? (
+        <div className="bg-white p-12 rounded-lg border border-slate-200 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-100 rounded-full mb-4">
+            {searchTerm || filterDependencia || filterEstado ? (
+              <AlertCircle className="w-8 h-8 text-slate-400" />
+            ) : (
+              <Package className="w-8 h-8 text-slate-400" />
+            )}
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">
+            {searchTerm || filterDependencia || filterEstado 
+              ? 'No se encontraron activos'
+              : 'No hay activos registrados'}
+          </h3>
+          <p className="text-slate-600">
+            {searchTerm || filterDependencia || filterEstado
+              ? 'Intenta cambiar los filtros de búsqueda'
+              : 'Comienza agregando tu primer activo'}
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">
+                    Código
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">
+                    Nombre
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">
+                    Marca/Modelo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">
+                    Serie
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">
+                    Dependencia
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase tracking-wider">
+                    Valor
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-700 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-slate-200">
+                {activosFiltrados.map((activo) => (
+                  <tr key={activo.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-mono font-medium text-slate-900">
+                        {activo.codigo}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-slate-900">
+                        {activo.nombre}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-slate-700">
+                        {activo.marca && activo.modelo 
+                          ? `${activo.marca} ${activo.modelo}`
+                          : activo.marca || activo.modelo || '-'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm text-slate-700 font-mono">
+                        {activo.serie || '-'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-slate-700">
+                        {activo.dependencia}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getEstadoBadgeClass(activo.estado)}`}>
+                        {activo.estado}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-medium text-slate-900">
+                        {formatCurrency(activo.valorCompra || 0)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => onEdit(activo)}
+                          className="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Editar"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(activo.id)}
+                          className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
