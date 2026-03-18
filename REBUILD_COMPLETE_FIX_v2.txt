@@ -1,0 +1,5 @@
+REBUILD COMPLETO - Error Boundary + Validación total de arrays
+- ErrorBoundary global agregado
+- Validación defensiva en todos los componentes
+- Protección contra dependencias vacías
+- Timestamp: 2026-03-18 16:15:00
