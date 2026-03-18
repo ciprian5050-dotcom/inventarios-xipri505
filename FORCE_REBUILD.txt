@@ -1,0 +1,2 @@
+Force rebuild - Fix validación de arrays en todos los componentes
+Timestamp: 2026-03-18 16:00:00
