@@ -293,8 +293,8 @@ function App() {
         {currentScreen === 'supabase-config' && <SupabaseConfigScreen />}
         {currentScreen === 'usuarios-admin' && <UsuariosAdminScreen />}
       </MainLayout>
-      <Toaster position="top-right" />
-    </>
+<Toaster position="top-right" />
+</ErrorBoundary>
   );
 }
 
