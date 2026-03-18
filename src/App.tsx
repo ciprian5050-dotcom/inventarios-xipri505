@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Toaster } from 'sonner';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { LoginScreen } from './components/LoginScreen';
 import { SignupScreen } from './components/SignupScreen';
 import { MainLayout } from './components/MainLayout';
@@ -272,7 +273,7 @@ function App() {
 
   // Aplicación principal (autenticada)
   return (
-    <>
+    <ErrorBoundary>
       <MainLayout
         currentScreen={currentScreen}
         onNavigate={handleNavigate}
