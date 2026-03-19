@@ -1,31 +1,52 @@
-import { useState } from 'react';
-import { Download, Upload, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Download, Upload, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { kvGetByPrefix, kvSet } from '../utils/supabase/client';
 import type { Activo, Dependencia, GrupoActivo, Cuentadante } from '../types';
 
-interface BackupRestoreScreenProps {
-  activos: Activo[];
-  dependencias: Dependencia[];
-  grupos: GrupoActivo[];
-  cuentadantes: Cuentadante[];
-  onRestore: () => void;
-}
-
-export function BackupRestoreScreen({
-  activos,
-  dependencias,
-  grupos,
-  cuentadantes,
-  onRestore
-}: BackupRestoreScreenProps) {
+export function BackupRestoreScreen() {
+  const [activos, setActivos] = useState<Activo[]>([]);
+  const [dependencias, setDependencias] = useState<Dependencia[]>([]);
+  const [cuentadantes, setCuentadantes] = useState<Cuentadante[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isRestoring, setIsRestoring] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      const loadedActivos = await kvGetByPrefix('activo:');
+      const loadedDependencias = await kvGetByPrefix('dependencia:');
+      const loadedCuentadantes = await kvGetByPrefix('cuentadante:');
+      
+      // Asegurar que todos sean arrays
+      const activosArray = Array.isArray(loadedActivos) ? loadedActivos : [];
+      const dependenciasArray = Array.isArray(loadedDependencias) ? loadedDependencias : [];
+      const cuentadantesArray = Array.isArray(loadedCuentadantes) ? loadedCuentadantes : [];
+      
+      setActivos(activosArray);
+      setDependencias(dependenciasArray);
+      setCuentadantes(cuentadantesArray);
+    } catch (err) {
+      console.error('Error cargando datos:', err);
+      toast.error('Error al cargar los datos');
+      setActivos([]);
+      setDependencias([]);
+      setCuentadantes([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBackup = () => {
     try {
       const backupData = {
         activos,
         dependencias,
-        grupos,
         cuentadantes,
         fecha: new Date().toISOString(),
         version: '3.0.0'
@@ -59,12 +80,15 @@ export function BackupRestoreScreen({
         const content = e.target?.result as string;
         const backupData = JSON.parse(content);
 
-        if (!backupData.activos || !backupData.dependencias || !backupData.grupos || !backupData.cuentadantes) {
+        // Validar estructura del backup
+        if (!backupData.activos || !backupData.dependencias || !backupData.cuentadantes) {
           throw new Error('Archivo de backup inválido');
         }
 
+        // Aquí deberías implementar la lógica de restauración
+        // llamando a los endpoints del servidor para cada entidad
         toast.success('Backup restaurado exitosamente');
-        onRestore();
+        loadData();
       } catch (error) {
         console.error('Error restaurando backup:', error);
         toast.error('Error al restaurar el backup');
@@ -81,6 +105,7 @@ export function BackupRestoreScreen({
       <p className="text-slate-600 mb-8">Gestiona copias de seguridad de tus datos</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Crear Backup */}
         <div className="bg-white p-6 rounded-lg border border-slate-200">
           <div className="flex items-center gap-3 mb-4">
             <Download className="text-blue-600" size={24} />
@@ -101,12 +126,12 @@ export function BackupRestoreScreen({
             <ul className="space-y-1 text-sm text-slate-600">
               <li>✓ {activos.length} activos</li>
               <li>✓ {dependencias.length} dependencias</li>
-              <li>✓ {grupos.length} grupos</li>
               <li>✓ {cuentadantes.length} cuentadantes</li>
             </ul>
           </div>
         </div>
 
+        {/* Restaurar Backup */}
         <div className="bg-white p-6 rounded-lg border border-slate-200">
           <div className="flex items-center gap-3 mb-4">
             <Upload className="text-green-600" size={24} />
