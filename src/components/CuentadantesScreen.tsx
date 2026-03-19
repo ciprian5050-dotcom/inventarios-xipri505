@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Cuentadante } from '../types';
+import { Cuentadante, Dependencia } from '../types';
 import { CuentadantesList } from './CuentadantesList';
 import { CuentadanteForm } from './CuentadanteForm';
 import { Plus, RefreshCw } from 'lucide-react';
@@ -8,7 +8,7 @@ import type { Activo } from '../types';
 
 export function CuentadantesScreen() {
   const [cuentadantes, setCuentadantes] = useState<Cuentadante[]>([]);
-  const [dependencias, setDependencias] = useState<string[]>([]);
+  const [dependencias, setDependencias] = useState<Dependencia[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingCuentadante, setEditingCuentadante] = useState<Cuentadante | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +39,7 @@ export function CuentadantesScreen() {
       });
       
       setCuentadantes(cuentadantesArray);
-      setDependencias(dependenciasArray.map((d: any) => d.nombre));
+      setDependencias(dependenciasArray);
     } catch (err: any) {
       console.error('❌ Error cargando cuentadantes:', err);
       setError(`Error al cargar los cuentadantes: ${err.message || 'Error desconocido'}`);
