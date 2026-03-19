@@ -8,13 +8,12 @@ import type { Activo } from '../types';
 
 export function CuentadantesScreen() {
   const [cuentadantes, setCuentadantes] = useState<Cuentadante[]>([]);
-  const [dependencias, setDependencias] = useState<Dependencia[]>([]);  // ← IMPORTANTE: Dependencia[] NO string[]
+  const [dependencias, setDependencias] = useState<Dependencia[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingCuentadante, setEditingCuentadante] = useState<Cuentadante | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Cargar datos desde Supabase
   useEffect(() => {
     loadData();
   }, []);
@@ -29,7 +28,6 @@ export function CuentadantesScreen() {
       const loadedCuentadantes = await kvGetByPrefix('cuentadante:');
       const loadedDependencias = await kvGetByPrefix('dependencia:');
       
-      // Asegurar que siempre sean arrays
       const cuentadantesArray = Array.isArray(loadedCuentadantes) ? loadedCuentadantes : [];
       const dependenciasArray = Array.isArray(loadedDependencias) ? loadedDependencias : [];
       
@@ -39,11 +37,10 @@ export function CuentadantesScreen() {
       });
       
       setCuentadantes(cuentadantesArray);
-      setDependencias(dependenciasArray);  // ← IMPORTANTE: Guardar array de objetos, NO .map(d => d.nombre)
+      setDependencias(dependenciasArray);
     } catch (err: any) {
       console.error('❌ Error cargando cuentadantes:', err);
       setError(`Error al cargar los cuentadantes: ${err.message || 'Error desconocido'}`);
-      // Asegurar que los estados sean arrays incluso en caso de error
       setCuentadantes([]);
       setDependencias([]);
     } finally {
@@ -157,7 +154,7 @@ export function CuentadantesScreen() {
           ) : (
             <CuentadanteForm
               cuentadante={editingCuentadante}
-              dependencias={dependencias}  {/* ← IMPORTANTE: Pasar array de objetos completos */}
+              dependencias={dependencias}
               onSubmit={(data) => {
                 if (editingCuentadante) {
                   handleEditCuentadante(editingCuentadante.id, data);
