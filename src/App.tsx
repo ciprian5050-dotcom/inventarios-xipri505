@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { ErrorBoundary } from './components/ErrorBoundary';
 import { LoginScreen } from './components/LoginScreen';
 import { SignupScreen } from './components/SignupScreen';
 import { MainLayout } from './components/MainLayout';
@@ -18,7 +17,6 @@ import { IngresosScreen } from './components/IngresosScreen';
 import { BackendAdminScreen } from './components/BackendAdminScreen';
 import { SupabaseConfigScreen } from './components/SupabaseConfigScreen';
 import { UsuariosAdminScreen } from './components/UsuariosAdminScreen';
-import { RecuperarMarcasScreen } from './components/RecuperarMarcasScreen';
 import { BackupRestoreScreen } from './components/BackupRestoreScreen';
 import { DepreciacionScreen } from './components/DepreciacionScreen';
 import { UsuariosScreen } from './components/UsuariosScreen';
@@ -27,7 +25,7 @@ import { UsuariosScreen } from './components/UsuariosScreen';
 console.log('🔥 INVENTARIOS_XIPRI505 v3.0.0 - REBUILD COMPLETO - 26/01/2026');
 console.log('✅ Sistema actualizado - Sin credenciales públicas');
 
-type Screen = 'login' | 'signup' | 'dashboard' | 'activos' | 'cuentadantes' | 'dependencias' | 'reportes' | 'configuracion' | 'circulares' | 'marcas' | 'nombres-activos' | 'ingresos' | 'backend-admin' | 'supabase-config' | 'usuarios-admin' | 'recuperar-marcas' | 'backup-restore' | 'depreciacion' | 'usuarios';
+type Screen = 'login' | 'signup' | 'dashboard' | 'activos' | 'cuentadantes' | 'dependencias' | 'reportes' | 'configuracion' | 'circulares' | 'marcas' | 'nombres-activos' | 'ingresos' | 'backend-admin' | 'supabase-config' | 'usuarios-admin' | 'backup-restore' | 'depreciacion' | 'usuarios';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
@@ -297,7 +295,6 @@ function App() {
         {currentScreen === 'backend-admin' && <BackendAdminScreen />}
         {currentScreen === 'supabase-config' && <SupabaseConfigScreen />}
         {currentScreen === 'usuarios-admin' && <UsuariosAdminScreen />}
-        {currentScreen === 'recuperar-marcas' && <RecuperarMarcasScreen />}
         {currentScreen === 'backup-restore' && <BackupRestoreScreen />}
         {currentScreen === 'depreciacion' && <DepreciacionScreen />}
         {currentScreen === 'usuarios' && <UsuariosScreen />}
