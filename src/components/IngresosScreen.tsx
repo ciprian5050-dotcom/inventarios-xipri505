@@ -67,11 +67,16 @@ export function IngresosScreen() {
     try {
       setLoading(true);
       const data = await kvGetByPrefix('ingreso:');
-      setIngresos(data.sort((a, b) => 
+      
+      // Asegurar que sea un array
+      const ingresosArray = Array.isArray(data) ? data : [];
+      
+      setIngresos(ingresosArray.sort((a, b) => 
         new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()
       ));
     } catch (err) {
       console.error('Error cargando ingresos:', err);
+      setIngresos([]);
     } finally {
       setLoading(false);
     }
