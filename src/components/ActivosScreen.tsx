@@ -39,20 +39,31 @@ export function ActivosScreen() {
       // Cargar marcas (key simple: marcas)
       const loadedMarcas = await kvGet('marcas') || [];
 
+      // Asegurar que todos sean arrays
+      const activosArray = Array.isArray(loadedActivos) ? loadedActivos : [];
+      const cuentadantesArray = Array.isArray(loadedCuentadantes) ? loadedCuentadantes : [];
+      const dependenciasArray = Array.isArray(loadedDependencias) ? loadedDependencias : [];
+      const marcasArray = Array.isArray(loadedMarcas) ? loadedMarcas : [];
+
       console.log('✅ Datos cargados:', {
-        activos: loadedActivos.length,
-        cuentadantes: loadedCuentadantes.length,
-        dependencias: loadedDependencias.length,
-        marcas: Array.isArray(loadedMarcas) ? loadedMarcas.length : 0
+        activos: activosArray.length,
+        cuentadantes: cuentadantesArray.length,
+        dependencias: dependenciasArray.length,
+        marcas: marcasArray.length
       });
 
-      setActivos(loadedActivos);
-      setCuentadantes(loadedCuentadantes);
-      setDependencias(loadedDependencias);
-      setMarcas(Array.isArray(loadedMarcas) ? loadedMarcas : []);
+      setActivos(activosArray);
+      setCuentadantes(cuentadantesArray);
+      setDependencias(dependenciasArray);
+      setMarcas(marcasArray);
     } catch (err: any) {
       console.error('❌ Error cargando datos:', err);
-      setError('Error al cargar los datos desde Supabase');
+      setError(`Error al cargar los datos: ${err.message || 'Error desconocido'}`);
+      // Asegurar arrays vacíos en caso de error
+      setActivos([]);
+      setCuentadantes([]);
+      setDependencias([]);
+      setMarcas([]);
     } finally {
       setLoading(false);
     }
