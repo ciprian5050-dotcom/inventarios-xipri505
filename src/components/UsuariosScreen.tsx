@@ -1,23 +1,12 @@
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, User, Shield } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, User, Shield, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { kvGetByPrefix, kvSet, kvDel } from '../utils/supabase/client';
 import type { Usuario } from '../types';
 
-interface UsuariosScreenProps {
-  usuarios: Usuario[];
-  onAddUsuario: (usuario: Omit<Usuario, 'id'>) => void;
-  onUpdateUsuario: (id: string, usuario: Omit<Usuario, 'id'>) => void;
-  onDeleteUsuario: (id: string) => void;
-  currentUser: Usuario | null;
-}
-
-export function UsuariosScreen({
-  usuarios,
-  onAddUsuario,
-  onUpdateUsuario,
-  onDeleteUsuario,
-  currentUser
-}: UsuariosScreenProps) {
+export function UsuariosScreen() {
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
   const [formData, setFormData] = useState({
@@ -27,7 +16,29 @@ export function UsuariosScreen({
     rol: 'usuario' as 'administrador' | 'usuario'
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const loadedUsuarios = await kvGetByPrefix('usuario:');
+      
+      // Asegurar que sea un array
+      const usuariosArray = Array.isArray(loadedUsuarios) ? loadedUsuarios : [];
+      
+      setUsuarios(usuariosArray);
+    } catch (err) {
+      console.error('Error cargando usuarios:', err);
+      toast.error('Error al cargar los usuarios');
+      setUsuarios([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.nombre || !formData.usuario || (!editingUsuario && !formData.password)) {
@@ -35,19 +46,35 @@ export function UsuariosScreen({
       return;
     }
 
-    if (editingUsuario) {
-      const updateData = formData.password 
-        ? formData 
-        : { nombre: formData.nombre, usuario: formData.usuario, rol: formData.rol, password: editingUsuario.password };
-      
-      onUpdateUsuario(editingUsuario.id, updateData);
-      setEditingUsuario(null);
-    } else {
-      onAddUsuario(formData);
-    }
+    try {
+      if (editingUsuario) {
+        const updateData = formData.password 
+          ? formData 
+          : { nombre: formData.nombre, usuario: formData.usuario, rol: formData.rol, password: editingUsuario.password };
+        
+        const updatedUsuario = { ...updateData, id: editingUsuario.id };
+        await kvSet(`usuario:${editingUsuario.id}`, updatedUsuario);
+        
+        setUsuarios(usuarios.map(u => u.id === editingUsuario.id ? updatedUsuario : u));
+        setEditingUsuario(null);
+        toast.success('Usuario actualizado');
+      } else {
+        const newUsuario: Usuario = {
+          ...formData,
+          id: Date.now().toString()
+        };
+        
+        await kvSet(`usuario:${newUsuario.id}`, newUsuario);
+        setUsuarios([...usuarios, newUsuario]);
+        toast.success('Usuario creado');
+      }
 
-    setFormData({ nombre: '', usuario: '', password: '', rol: 'usuario' });
-    setShowForm(false);
+      setFormData({ nombre: '', usuario: '', password: '', rol: 'usuario' });
+      setShowForm(false);
+    } catch (err) {
+      console.error('Error guardando usuario:', err);
+      toast.error('Error al guardar el usuario');
+    }
   };
 
   const handleEdit = (usuario: Usuario) => {
@@ -61,14 +88,16 @@ export function UsuariosScreen({
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (currentUser?.id === id) {
-      toast.error('No puedes eliminar tu propio usuario');
-      return;
-    }
-
+  const handleDelete = async (id: string) => {
     if (confirm('¿Estás seguro de eliminar este usuario?')) {
-      onDeleteUsuario(id);
+      try {
+        await kvDel(`usuario:${id}`);
+        setUsuarios(usuarios.filter(u => u.id !== id));
+        toast.success('Usuario eliminado');
+      } catch (err) {
+        console.error('Error eliminando usuario:', err);
+        toast.error('Error al eliminar el usuario');
+      }
     }
   };
 
@@ -199,11 +228,6 @@ export function UsuariosScreen({
                         <User size={20} className="text-blue-600" />
                       </div>
                       <span className="font-medium">{usuario.nombre}</span>
-                      {currentUser?.id === usuario.id && (
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                          Tú
-                        </span>
-                      )}
                     </div>
                   </td>
                   <td className="p-4 text-slate-600">{usuario.usuario}</td>
@@ -235,7 +259,6 @@ export function UsuariosScreen({
                         onClick={() => handleDelete(usuario.id)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Eliminar"
-                        disabled={currentUser?.id === usuario.id}
                       >
                         <Trash2 size={18} />
                       </button>
