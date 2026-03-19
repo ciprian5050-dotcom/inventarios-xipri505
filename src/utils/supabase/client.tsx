@@ -171,7 +171,9 @@ export async function kvGetByPrefix(prefix: string): Promise<any[]> {
           hint: error.hint,
           code: error.code
         });
-        throw error;
+        // En lugar de lanzar error, devolver array vacío
+        console.warn(`⚠️ Devolviendo array vacío debido a error`);
+        return [];
       }
       
       if (data && data.length > 0) {
@@ -192,7 +194,9 @@ export async function kvGetByPrefix(prefix: string): Promise<any[]> {
     
     console.log(`✅ kvGetByPrefix(${prefix}) - COMPLETADO: ${allData.length} registros totales`);
     
-    return allData.map(row => row.value);
+    // Asegurar que siempre devolvemos un array
+    const result = allData.map(row => row?.value).filter(v => v != null);
+    return result;
   } catch (error: any) {
     console.error(`❌ Error en kvGetByPrefix(${prefix}):`, {
       message: error.message,
@@ -201,13 +205,9 @@ export async function kvGetByPrefix(prefix: string): Promise<any[]> {
       code: error.code
     });
     
-    // Si es un error de red, devolver array vacío en lugar de lanzar error
-    if (error.message?.includes('Failed to fetch')) {
-      console.warn(`⚠️ Error de red detectado. Devolviendo array vacío.`);
-      return [];
-    }
-    
-    throw error;
+    // SIEMPRE devolver array vacío en caso de error
+    console.warn(`⚠️ Devolviendo array vacío debido a excepción`);
+    return [];
   }
 }
 
