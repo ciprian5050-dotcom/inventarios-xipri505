@@ -8,7 +8,7 @@ import type { Activo } from '../types';
 
 export function CuentadantesScreen() {
   const [cuentadantes, setCuentadantes] = useState<Cuentadante[]>([]);
-  const [dependencias, setDependencias] = useState<Dependencia[]>([]);
+  const [dependencias, setDependencias] = useState<Dependencia[]>([]);  // ← IMPORTANTE: Dependencia[] NO string[]
   const [showForm, setShowForm] = useState(false);
   const [editingCuentadante, setEditingCuentadante] = useState<Cuentadante | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,7 +39,7 @@ export function CuentadantesScreen() {
       });
       
       setCuentadantes(cuentadantesArray);
-      setDependencias(dependenciasArray);
+      setDependencias(dependenciasArray);  // ← IMPORTANTE: Guardar array de objetos, NO .map(d => d.nombre)
     } catch (err: any) {
       console.error('❌ Error cargando cuentadantes:', err);
       setError(`Error al cargar los cuentadantes: ${err.message || 'Error desconocido'}`);
@@ -157,7 +157,7 @@ export function CuentadantesScreen() {
           ) : (
             <CuentadanteForm
               cuentadante={editingCuentadante}
-              dependencias={dependencias}
+              dependencias={dependencias}  {/* ← IMPORTANTE: Pasar array de objetos completos */}
               onSubmit={(data) => {
                 if (editingCuentadante) {
                   handleEditCuentadante(editingCuentadante.id, data);
