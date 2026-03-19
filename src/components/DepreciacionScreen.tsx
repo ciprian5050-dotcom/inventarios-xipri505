@@ -1,12 +1,9 @@
-import { useState } from 'react';
-import { Calculator, Download } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calculator, Download, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { kvGetByPrefix } from '../utils/supabase/client';
 import type { Activo } from '../types';
 import * as XLSX from 'xlsx';
-
-interface DepreciacionScreenProps {
-  activos: Activo[];
-}
 
 interface ActivoDepreciado extends Activo {
   vidaUtil: number;
@@ -25,9 +22,33 @@ const VIDAS_UTILES: Record<string, number> = {
   'default': 10
 };
 
-export function DepreciacionScreen({ activos }: DepreciacionScreenProps) {
+export function DepreciacionScreen() {
+  const [activos, setActivos] = useState<Activo[]>([]);
   const [activosDepreciados, setActivosDepreciados] = useState<ActivoDepreciado[]>([]);
   const [calculado, setCalculado] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const loadedActivos = await kvGetByPrefix('activo:');
+      
+      // Asegurar que sea un array
+      const activosArray = Array.isArray(loadedActivos) ? loadedActivos : [];
+      
+      setActivos(activosArray);
+    } catch (err) {
+      console.error('Error cargando activos:', err);
+      toast.error('Error al cargar los activos');
+      setActivos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const calcularDepreciacion = () => {
     const fechaActual = new Date();
@@ -131,6 +152,7 @@ export function DepreciacionScreen({ activos }: DepreciacionScreenProps) {
 
       {calculado && activosDepreciados.length > 0 && (
         <>
+          {/* Resumen */}
           <div className="grid grid-cols-3 gap-6 mb-8">
             <div className="bg-white p-6 rounded-lg border border-slate-200">
               <p className="text-slate-600 text-sm mb-1">Valor Original Total</p>
@@ -146,6 +168,7 @@ export function DepreciacionScreen({ activos }: DepreciacionScreenProps) {
             </div>
           </div>
 
+          {/* Tabla */}
           <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
