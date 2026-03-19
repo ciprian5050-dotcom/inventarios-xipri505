@@ -157,7 +157,8 @@ export function ActivosScreen() {
     setEditingActivo(null);
   };
 
-  const marcasNames = marcas.map(m => m.nombre);
+  // Asegurar que marcas sea un array antes de hacer .map()
+  const marcasNames = Array.isArray(marcas) ? marcas.map(m => m.nombre) : [];
 
   if (loading) {
     return (
