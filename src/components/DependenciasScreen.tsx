@@ -26,12 +26,16 @@ export function DependenciasScreen() {
       
       const loadedDependencias = await kvGetByPrefix('dependencia:');
       
-      console.log('✅ Dependencias cargadas:', loadedDependencias.length);
+      // Asegurar que sea un array
+      const dependenciasArray = Array.isArray(loadedDependencias) ? loadedDependencias : [];
       
-      setDependencias(loadedDependencias);
+      console.log('✅ Dependencias cargadas:', dependenciasArray.length);
+      
+      setDependencias(dependenciasArray);
     } catch (err: any) {
       console.error('❌ Error cargando dependencias:', err);
-      setError('Error al cargar las dependencias desde Supabase');
+      setError(`Error al cargar las dependencias: ${err.message || 'Error desconocido'}`);
+      setDependencias([]);
     } finally {
       setLoading(false);
     }
