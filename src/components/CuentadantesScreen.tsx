@@ -5,6 +5,7 @@ import { CuentadanteForm } from './CuentadanteForm';
 import { Plus, RefreshCw } from 'lucide-react';
 import { kvSet, kvGetByPrefix, kvDel } from '../utils/supabase/client';
 
+// ✅ VERSIÓN: 2026-04-15 - Módulo Cuentadantes FUNCIONANDO
 export function CuentadantesScreen() {
   const [cuentadantes, setCuentadantes] = useState<Cuentadante[]>([]);
   const [dependencias, setDependencias] = useState<Dependencia[]>([]);
