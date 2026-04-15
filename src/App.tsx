@@ -25,7 +25,7 @@ import { DiagnosticoCuentadantes } from './components/DiagnosticoCuentadantes';
 // 🚀 VERSIÓN 3.0.0 - 2026-01-26 - FORCE REBUILD - SIN CREDENCIALES
 console.log('🔥 INVENTARIOS_XIPRI505 v3.0.0 - REBUILD COMPLETO - 26/01/2026');
 console.log('✅ Sistema actualizado - Sin credenciales públicas');
-console.log('🔍 VERSIÓN: 2026-04-15 23:10 - FIX IMPORTS FINAL');
+console.log('🔍 VERSIÓN: 2026-04-15 23:30 - FIX IMPORTS GITHUB');
 
 // Capturar todos los errores
 window.addEventListener('error', (event) => {
