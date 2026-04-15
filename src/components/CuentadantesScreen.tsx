@@ -4,7 +4,6 @@ import { CuentadantesList } from './CuentadantesList';
 import { CuentadanteForm } from './CuentadanteForm';
 import { Plus, RefreshCw } from 'lucide-react';
 import { kvSet, kvGetByPrefix, kvDel } from '../utils/supabase/client';
-import type { Activo } from '../types';
 
 export function CuentadantesScreen() {
   const [cuentadantes, setCuentadantes] = useState<Cuentadante[]>([]);
@@ -23,18 +22,11 @@ export function CuentadantesScreen() {
       setLoading(true);
       setError('');
       
-      console.log('🔍 Cargando cuentadantes desde Supabase...');
-      
       const loadedCuentadantes = await kvGetByPrefix('cuentadante:');
       const loadedDependencias = await kvGetByPrefix('dependencia:');
       
       const cuentadantesArray = Array.isArray(loadedCuentadantes) ? loadedCuentadantes : [];
       const dependenciasArray = Array.isArray(loadedDependencias) ? loadedDependencias : [];
-      
-      console.log('✅ Datos cargados:', {
-        cuentadantes: cuentadantesArray.length,
-        dependencias: dependenciasArray.length
-      });
       
       setCuentadantes(cuentadantesArray);
       setDependencias(dependenciasArray);
