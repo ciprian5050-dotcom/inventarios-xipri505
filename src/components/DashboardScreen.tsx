@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Activo, Cuentadante, Dependencia } from '../types';
-import { Package, Building2, FileText, Database } from 'lucide-react';
+import { Package, Building2, FileText, Database, Users } from 'lucide-react';
 import { kvGetByPrefix, kvGet } from '../utils/supabase/client';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 export function DashboardScreen() {
   const [activos, setActivos] = useState<Activo[]>([]);
   const [dependencias, setDependencias] = useState<Dependencia[]>([]);
+  const [cuentadantes, setCuentadantes] = useState<Cuentadante[]>([]);
   const [marcas, setMarcas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,15 +21,18 @@ export function DashboardScreen() {
       setLoading(true);
       const loadedActivos = await kvGetByPrefix('activo:') || [];
       const loadedDependencias = await kvGetByPrefix('dependencia:') || [];
+      const loadedCuentadantes = await kvGetByPrefix('cuentadante:') || [];
       const loadedMarcas = await kvGet('marcas') || [];
 
       setActivos(Array.isArray(loadedActivos) ? loadedActivos : []);
       setDependencias(Array.isArray(loadedDependencias) ? loadedDependencias : []);
+      setCuentadantes(Array.isArray(loadedCuentadantes) ? loadedCuentadantes : []);
       setMarcas(Array.isArray(loadedMarcas) ? loadedMarcas : []);
     } catch (error) {
       console.error('Error cargando datos:', error);
       setActivos([]);
       setDependencias([]);
+      setCuentadantes([]);
       setMarcas([]);
     } finally {
       setLoading(false);
@@ -37,6 +41,7 @@ export function DashboardScreen() {
 
   const totalActivos = activos.length;
   const totalDependencias = dependencias.length;
+  const totalCuentadantes = cuentadantes.length;
   const totalMarcas = marcas.length;
 
   const stats = [
@@ -57,20 +62,20 @@ export function DashboardScreen() {
       iconColor: 'text-purple-600'
     },
     {
+      label: 'Cuentadantes',
+      value: totalCuentadantes.toString(),
+      icon: Users,
+      color: 'from-orange-500 to-orange-600',
+      iconBg: 'bg-orange-100',
+      iconColor: 'text-orange-600'
+    },
+    {
       label: 'Marcas',
       value: totalMarcas.toString(),
       icon: FileText,
       color: 'from-green-500 to-green-600',
       iconBg: 'bg-green-100',
       iconColor: 'text-green-600'
-    },
-    {
-      label: 'Sistema',
-      value: 'Activo',
-      icon: Database,
-      color: 'from-slate-500 to-slate-600',
-      iconBg: 'bg-slate-100',
-      iconColor: 'text-slate-600'
     }
   ];
 
