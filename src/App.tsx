@@ -20,12 +20,11 @@ import { UsuariosAdminScreen } from './components/UsuariosAdminScreen';
 import { BackupRestoreScreen } from './components/BackupRestoreScreen';
 import { DepreciacionScreen } from './components/DepreciacionScreen';
 import { UsuariosScreen } from './components/UsuariosScreen';
-import { DiagnosticoCuentadantes } from './components/DiagnosticoCuentadantes';
 
 // 🚀 VERSIÓN 3.0.0 - 2026-01-26 - FORCE REBUILD - SIN CREDENCIALES
 console.log('🔥 INVENTARIOS_XIPRI505 v3.0.0 - REBUILD COMPLETO - 26/01/2026');
 console.log('✅ Sistema actualizado - Sin credenciales públicas');
-console.log('🔍 VERSIÓN: 2026-04-15 23:30 - FIX IMPORTS GITHUB');
+console.log('🔍 VERSIÓN: 2026-04-14 22:35 - FIX IMPORTS');
 
 // Capturar todos los errores
 window.addEventListener('error', (event) => {
@@ -39,7 +38,7 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('❌ PROMESA RECHAZADA:', event.reason);
 });
 
-type Screen = 'login' | 'signup' | 'dashboard' | 'activos' | 'cuentadantes' | 'dependencias' | 'reportes' | 'configuracion' | 'circulares' | 'marcas' | 'nombres-activos' | 'ingresos' | 'backend-admin' | 'supabase-config' | 'usuarios-admin' | 'backup-restore' | 'depreciacion' | 'usuarios' | 'diagnostico-cuentadantes';
+type Screen = 'login' | 'signup' | 'dashboard' | 'activos' | 'cuentadantes' | 'dependencias' | 'reportes' | 'configuracion' | 'circulares' | 'marcas' | 'nombres-activos' | 'ingresos' | 'backend-admin' | 'supabase-config' | 'usuarios-admin' | 'backup-restore' | 'depreciacion' | 'usuarios';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login');
@@ -312,7 +311,6 @@ function App() {
         {currentScreen === 'backup-restore' && <BackupRestoreScreen />}
         {currentScreen === 'depreciacion' && <DepreciacionScreen />}
         {currentScreen === 'usuarios' && <UsuariosScreen />}
-        {currentScreen === 'diagnostico-cuentadantes' && <DiagnosticoCuentadantes />}
       </MainLayout>
       <Toaster position="top-right" />
     </ErrorBoundary>
