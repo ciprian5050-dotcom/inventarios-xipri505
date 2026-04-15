@@ -11,6 +11,29 @@ interface CuentadanteFormProps {
 }
 
 export function CuentadanteForm({ cuentadante, dependencias, onSave, onSubmit, onCancel }: CuentadanteFormProps) {
+  // VALIDACIÓN ULTRA DEFENSIVA: asegurar que dependencias sea un array válido
+  const safeDependencias = Array.isArray(dependencias) 
+    ? dependencias.filter(dep => dep && typeof dep === 'object' && dep.nombre && dep.codigo && dep.id)
+    : [];
+
+  // LOG para debugging
+  console.log('🔍 CuentadanteForm recibió:', {
+    cantidadDependencias: dependencias?.length || 0,
+    primeraDependencia: dependencias?.[0],
+    dependenciasValidas: safeDependencias.length,
+    ids: safeDependencias.map(d => d.id),
+    duplicados: safeDependencias.filter((d, i, arr) => arr.findIndex(a => a.id === d.id) !== i).length,
+    sinId: safeDependencias.filter(d => !d.id).length
+  });
+
+  // ✅ FILTRAR dependencias sin ID o con IDs duplicados para evitar warning de React
+  const uniqueDependencias = safeDependencias.filter((d, index, arr) => {
+    // Debe tener ID
+    if (!d.id) return false;
+    // No debe ser duplicado (solo mantener la primera ocurrencia)
+    return arr.findIndex(item => item.id === d.id) === index;
+  });
+
   const [formData, setFormData] = useState({
     nombre: cuentadante?.nombre || '',
     cedula: cuentadante?.cedula || '',
@@ -213,7 +236,7 @@ export function CuentadanteForm({ cuentadante, dependencias, onSave, onSubmit, o
                 Dependencias <span className="text-red-500">*</span>
               </label>
               <div className="flex flex-wrap gap-2 p-3 border border-slate-300 rounded-lg min-h-[60px]">
-                {Array.isArray(dependencias) && dependencias.map(dep => (
+                {uniqueDependencias.map(dep => (
                   <button
                     key={dep.id}
                     type="button"
